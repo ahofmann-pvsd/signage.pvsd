@@ -196,6 +196,8 @@ async function route() {
 }
 
 route();
+if (window.navigator.managed && window.navigator.managed.getAnnotatedAssetId) els.status.textcontent = "device recognized" + window.navigator.managed.getAnnotatedAssetId
+
 
 // Register the service worker so the last-known mapping still works
 // during a brief network outage instead of showing a blank screen.
