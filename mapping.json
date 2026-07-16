@@ -1,7 +1,7 @@
 {
   "_comment": "Map each device's Asset ID (set in Admin Console > Device details) to the URL that screen should display. The 'default' entry is shown when a device's Asset ID has no match below, so a misconfigured screen never just goes blank.",
 
-  "cafeteria": "https://menus.yourdistrict.org/today",
+  "5745": "https://signage.pvsd.org/index.php/foyer/hs1/",
   "front-office": "https://calendar.yourdistrict.org/announcements",
   "gym-north": "https://sports.yourdistrict.org/schedule",
   "library-entrance": "https://library.yourdistrict.org/events",
