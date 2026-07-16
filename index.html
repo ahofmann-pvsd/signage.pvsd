@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Signage Router</title>
+<link rel="manifest" href="manifest.json">
+<style>
+  /* This screen is only ever seen for a split second (or when something
+     goes wrong), so it's kept plain and legible rather than "designed". */
+  :root {
+    --ink: #1b1f23;
+    --paper: #f7f7f5;
+    --line: #d8d8d3;
+    --accent: #2f6f4f;
+    --warn: #b3432b;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0;
+    height: 100%;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  body {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+  }
+  .card {
+    max-width: 560px;
+    width: 100%;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 32px;
+    background: white;
+  }
+  .status {
+    font-size: 14px;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: #6b6f76;
+    margin-bottom: 8px;
+  }
+  h1 {
+    font-size: 22px;
+    margin: 0 0 16px;
+  }
+  .row {
+    display: flex;
+    justify-content: space-between;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--line);
+    font-size: 14px;
+  }
+  .row:last-child { border-bottom: none; }
+  .row span:first-child { color: #6b6f76; }
+  .row span:last-child { font-family: ui-monospace, Menlo, monospace; }
+  .error { color: var(--warn); }
+  .ok { color: var(--accent); }
+  .hint {
+    margin-top: 20px;
+    font-size: 13px;
+    color: #6b6f76;
+    line-height: 1.5;
+  }
+</style>
+</head>
+<body>
+
+<div class="card">
+  <div class="status" id="status">Starting up…</div>
+  <h1 id="headline">Loading this screen's content…</h1>
+  <div id="details"></div>
+  <div class="hint" id="hint"></div>
+</div>
+
+<script>
+/*
+ * SIGNAGE ROUTER
+ * ---------------
+ * This page is set as the auto-launch Kiosk app for the whole OU in
+ * Admin Console. Every device runs the exact same code — what makes
+ * each screen show something different is:
+ *
+ *   1. The device's Asset ID, set per-device in Admin Console under
+ *      Devices > Chrome > Devices > (device) > Device details.
+ *   2. mapping.json, which pairs each Asset ID with a destination URL.
+ *
+ * On load we: read the Asset ID -> look it up in mapping.json ->
+ * redirect the screen there. If anything fails, we show a readable
+ * error instead of a blank screen, since that's much easier to debug
+ * standing in front of a Chromebox in a hallway.
+ */
+
+const els = {
+  status: document.getElementById("status"),
+  headline: document.getElementById("headline"),
+  details: document.getElementById("details"),
+  hint: document.getElementById("hint"),
+};
+
+function addRow(label, value) {
+  const row = document.createElement("div");
+  row.className = "row";
+  row.innerHTML = `<span>${label}</span><span>${value}</span>`;
+  els.details.appendChild(row);
+}
+
+function fail(message, hint) {
+  els.status.textContent = "Error";
+  els.status.classList.add("error");
+  els.headline.textContent = message;
+  if (hint) els.hint.textContent = hint;
+}
+
+// --- Step 1: figure out this device's Asset ID -----------------------
+async function getAssetId() {
+  // Local testing override: open the page as
+  // index.html?asset=cafeteria to simulate a specific device without
+  // needing real enrolled hardware. Remove or gate this before a real
+  // deployment if you don't want it reachable in production.
+  const params = new URLSearchParams(window.location.search);
+  if (params.has("asset")) {
+    return { id: params.get("asset"), source: "URL override (testing)" };
+  }
+
+  // Real path: the Device Attributes API. Only works on an enrolled,
+  // managed ChromeOS device running this page as the kiosk app, with
+  // this page's origin allowed by the DeviceAttributesAllowedForOrigins
+  // policy in Admin Console.
+  if (window.navigator.managed && window.navigator.managed.getAnnotatedAssetId) {
+    try {
+      const id = await window.navigator.managed.getAnnotatedAssetId();
+      if (id) return { id, source: "Device Attributes API" };
+    } catch (e) {
+      console.error("getAnnotatedAssetId failed:", e);
+    }
+  }
+
+  return { id: "", source: "not found" };
+}
+
+// --- Step 2: load the mapping table -----------------------------------
+async function loadMapping() {
+  const res = await fetch("mapping.json", { cache: "no-store" });
+  if (!res.ok) throw new Error(`mapping.json returned HTTP ${res.status}`);
+  return res.json();
+}
+
+// --- Step 3: put it together -------------------------------------------
+async function route() {
+  const { id: assetId, source } = await getAssetId();
+  addRow("Asset ID", assetId || "(none detected)");
+  addRow("Source", source);
+
+  if (!assetId) {
+    fail(
+      "No Asset ID was found for this device.",
+      "Set one under Admin Console > Devices > Chrome > Devices > this device > " +
+      "Device details > Asset ID, then reload. If you're testing locally, " +
+      "add ?asset=YOUR_TEST_ID to the URL."
+    );
+    return;
+  }
+
+  let mapping;
+  try {
+    mapping = await loadMapping();
+  } catch (e) {
+    fail("Could not load mapping.json.", e.message);
+    return;
+  }
+
+  const target = mapping[assetId] || mapping["default"];
+  if (!target) {
+    fail(
+      `No entry for "${assetId}" and no "default" fallback in mapping.json.`,
+      "Add an entry for this Asset ID, or add a default entry."
+    );
+    return;
+  }
+
+  addRow("Target URL", target);
+  els.status.textContent = "Redirecting…";
+  els.status.classList.add("ok");
+  els.headline.textContent = "Found this screen's content — loading it now.";
+
+  // Small delay so the status is readable during testing/demoing.
+  // Drop this to 0 (or remove) once you're confident in production.
+  setTimeout(() => {
+    window.location.replace(target);
+  }, 800);
+}
+
+route();
+
+// Register the service worker so the last-known mapping still works
+// during a brief network outage instead of showing a blank screen.
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.register("sw.js").catch((e) => {
+    console.warn("Service worker registration failed:", e);
+  });
+}
+</script>
+</body>
+</html>

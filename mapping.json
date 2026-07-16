@@ -1,0 +1,10 @@
+{
+  "_comment": "Map each device's Asset ID (set in Admin Console > Device details) to the URL that screen should display. The 'default' entry is shown when a device's Asset ID has no match below, so a misconfigured screen never just goes blank.",
+
+  "cafeteria": "https://menus.yourdistrict.org/today",
+  "front-office": "https://calendar.yourdistrict.org/announcements",
+  "gym-north": "https://sports.yourdistrict.org/schedule",
+  "library-entrance": "https://library.yourdistrict.org/events",
+
+  "default": "https://signage.yourdistrict.org/default-slideshow"
+}
