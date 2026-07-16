@@ -1,6 +1,10 @@
 {
   "_comment": "Map each device's Asset ID (set in Admin Console > Device details) to the URL that screen should display. The 'default' entry is shown when a device's Asset ID has no match below, so a misconfigured screen never just goes blank.",
-
   "5745": "https://signage.pvsd.org/index.php/foyer/hs1/",
+  "5762": "https://signage.pvsd.org/index.php/foyer/hs1/",
+  "5215": "https://signage.pvsd.org/index.php/foyer/hs1/",
+  "5611": "https://signage.pvsd.org/index.php/foyer/hs1/",
+  "5610": "https://signage.pvsd.org/index.php/foyer/hs1/",
+  "5887": "https://signage.pvsd.org/index.php/foyer/hs1/",
   "default": "https://signage.yourdistrict.org/default-slideshow"
 }
