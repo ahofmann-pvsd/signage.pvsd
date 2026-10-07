@@ -31,7 +31,9 @@
   "4126": "https://signage.pvsd.org/index.php/foyer/sc-lib/",
   "4816": "https://signage.pvsd.org/index.php/foyer/sc-lib/",
   "default": "Default-Site.html",
-  "_comment": "The following devices are Hallpass Kiosks",
-  "251762": "https://hallpass.pvsd.org/kiosk?token=_UPhC3Rra_BthXNktFRXY430RE-NeyKG"
+  "_comment": "The following devices are Hallpass Kiosks, the first one is HS and the second is West",
+  "251762": "https://hallpass.pvsd.org/kiosk?token=_UPhC3Rra_BthXNktFRXY430RE-NeyKG",
+  "211153": "https://hallpass.pvsd.org/kiosk?token=afdsQaOXRBq9SfwSQ9hhGGDFROXwNG-3"
+  
   
 }
